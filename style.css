@@ -31,24 +31,60 @@ body{
     height:100dvh;max-height:100dvh;
     box-sizing:border-box;
     overflow:hidden;
+    display:flex;
     /* iOS Safe Area: ノッチ・ホームバー回避（constant は iOS 11 向け） */
     padding-top:constant(safe-area-inset-top);
     padding-top:env(safe-area-inset-top,0);
     padding-bottom:constant(safe-area-inset-bottom);
     padding-bottom:env(safe-area-inset-bottom,0);
 }
-/* キャンバスはコンテナの余白内に収める（padding 追加後の高さ圧縮を考慮） */
+
+/* 左右コントロールパネル（幅固定） */
+.side-panel{
+    width:160px;
+    flex-shrink:0;
+    background:rgba(20,25,30,0.6);
+    position:relative;
+    z-index:10;
+}
+#left-panel{
+    border-right:2px solid rgba(255,255,255,0.1);
+}
+#right-panel{
+    border-left:2px solid rgba(255,255,255,0.1);
+}
+
+/* 中央パネル: プレイ画面（残り幅をすべて使用） */
+#center-panel{
+    flex-grow:1;
+    position:relative;
+    background:#1a1e24;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-width:0;
+}
+
+/* キャンバスは中央パネル内に収める */
+#center-panel canvas{
+    display:block;
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+}
 canvas{
-    display:block;image-rendering:pixelated;image-rendering:crisp-edges;
-    width:100%;height:auto;
-    max-height:calc(100dvh - constant(safe-area-inset-top) - constant(safe-area-inset-bottom));
-    max-height:calc(100dvh - env(safe-area-inset-top,0) - env(safe-area-inset-bottom,0));
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
 }
 
 #loading-screen{
-    position:absolute;top:0;left:0;width:100%;height:100%;
+    position:absolute;top:0;left:0;right:0;bottom:0;
     background:#000;display:flex;flex-direction:column;
     justify-content:center;align-items:center;z-index:100;transition:opacity 1.5s;
+    pointer-events:auto;
 }
 #loading-screen h1{color:#ff4d00;letter-spacing:6px;font-size:clamp(14px,4vw,20px)}
 .altar-light{
@@ -57,42 +93,54 @@ canvas{
 }
 @keyframes flicker{0%{opacity:.8}50%{opacity:1}100%{opacity:.8}}
 
-/* ======= コントロール ======= */
-#controls{
+/* ======= 左パネル ジョイスティック ======= */
+#joystick-zone{
+    width:100%;
+    height:100%;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+#joystick-base{
+    width:120px;
+    height:120px;
+    background:rgba(60,50,40,0.3);
+    border:2px solid rgba(180,150,120,0.5);
+    border-radius:50%;
+    position:relative;
+}
+#joystick-stick{
+    width:50px;
+    height:50px;
+    background:rgba(180,150,120,0.8);
+    border-radius:50%;
     position:absolute;
-    /* コンテナの padding-bottom（Safe Area）の直上に配置し、二重適用を避ける */
-    bottom:constant(safe-area-inset-bottom);
-    bottom:env(safe-area-inset-bottom,0);
-    left:0;right:0;
-    padding-bottom:16px;
-    pointer-events:none;z-index:500;
-    display:flex;justify-content:space-between;align-items:flex-end;
-    padding-left:max(20px, env(safe-area-inset-left, 20px));
-    padding-right:max(20px, env(safe-area-inset-right, 20px));
-}
-#controls>*{pointer-events:auto}
-
-/* WEB用 D-pad（タッチデバイスでは非表示 → iOS はフローティングジョイスティック） */
-#dpad.dpad-web{
-    display:grid;
-    grid-template-areas:
-        ".  up  ."
-        "lt dn rt";
-    grid-template-columns:58px 58px 58px;
-    grid-template-rows:58px 58px;
-    gap:4px;
-}
-#btn-up{grid-area:up}
-#btn-left{grid-area:lt}
-#btn-down{grid-area:dn}
-#btn-right{grid-area:rt}
-
-/* タッチデバイス（iOS等）では D-pad を非表示 */
-@media (hover: none) and (pointer: coarse){
-    #dpad.dpad-web{display:none !important;}
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    pointer-events:none;
+    box-shadow:0 4px 8px rgba(0,0,0,0.5);
 }
 
-#dpad button,#action-buttons button{
+/* ======= 右パネル アクションボタン ======= */
+#right-panel #action-buttons{
+    position:absolute;
+    right:0;
+    bottom:max(16px, env(safe-area-inset-bottom, 16px));
+    left:0;
+    padding:0 12px 16px;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:10px;
+    pointer-events:none;
+}
+#right-panel #action-buttons button{
+    pointer-events:auto;
+}
+
+#action-buttons button{
     -webkit-tap-highlight-color:transparent;
     -webkit-touch-callout:none;
     touch-action:manipulation;
@@ -118,46 +166,52 @@ canvas{
     background:rgba(80,50,35,.7);border-color:#6a4a38;
 }
 
-/* iPhone SE等の小型画面対応 */
+/* 縦向き時「横にしてください」オーバーレイ */
+.portrait-message{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    background:rgba(10,5,16,0.95);
+    align-items:center;
+    justify-content:center;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.portrait-message.is-visible{
+    display:flex;
+}
+.portrait-message p{
+    font-family:Cinzel,Georgia,serif;
+    font-size:clamp(20px,5vw,28px);
+    color:#e0cda7;
+    text-align:center;
+    margin:0;
+}
+
+/* 右パネル内ボタン 小型画面 */
 @media (max-height:600px){
-    #dpad{
-        grid-template-columns:48px 48px 48px;
-        grid-template-rows:48px 48px;
-    }
-    #action-buttons button{
+    #right-panel #action-buttons button{
         min-width:46px;min-height:46px;font-size:14px;padding:6px;
     }
-    #action-buttons button{min-width:64px;min-height:46px}
+    #right-panel #action-buttons button{min-width:64px;min-height:46px}
 }
 
-/* iPhone Pro Max等の大型画面対応 */
+/* 右パネル内ボタン 大型画面 */
 @media (min-height:800px){
-    #controls{
-        padding-bottom:24px;
-    }
-    #dpad{
-        grid-template-columns:64px 64px 64px;
-        grid-template-rows:64px 64px;
-    }
-    #action-buttons button{
+    #right-panel #action-buttons button{
         min-width:62px;min-height:62px;font-size:18px;
     }
-    #action-buttons button{min-width:84px}
+    #right-panel #action-buttons button{min-width:84px}
 }
 
-/* ランドスケープ（横持ち）最適化（タッチターゲットは48px以上を維持） */
+/* ランドスケープ（横持ち）最適化 */
 @media (orientation:landscape) and (max-height:500px){
-    #dpad{
-        grid-template-columns:50px 50px 50px;
-        grid-template-rows:50px 50px;
-        gap:2px;
-    }
-    #action-buttons button{
+    #right-panel #action-buttons button{
         min-width:48px;min-height:48px;font-size:13px;padding:4px;
         border-radius:8px;
     }
-    #action-buttons{gap:6px}
-    #action-buttons button{min-width:60px;min-height:48px}
+    #right-panel #action-buttons{gap:6px}
+    #right-panel #action-buttons button{min-width:60px;min-height:48px}
 }
 
 /* ======= ジョイスティック設定オーバーレイ ======= */

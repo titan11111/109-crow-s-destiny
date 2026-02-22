@@ -9,20 +9,33 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<!-- 縦向き時のみ表示：横画面でプレイするよう促す -->
+<div id="portrait-message" class="portrait-message" aria-hidden="true">
+    <p>横にしてください</p>
+</div>
+
 <div id="game-container">
     <div id="loading-screen">
         <h1>RITUAL INITIALIZING...</h1>
         <div class="altar-light"></div>
     </div>
-    <canvas id="gameCanvas"></canvas>
-    <div id="controls">
-        <!-- WEB（マウス・キーボード）用 D-pad。iOS では CSS で非表示にしてフローティングジョイスティックを使用 -->
-        <div id="dpad" class="dpad-web">
-            <button id="btn-up" type="button" aria-label="上">▲</button>
-            <button id="btn-left" type="button" aria-label="左">◀</button>
-            <button id="btn-down" type="button" aria-label="下">▼</button>
-            <button id="btn-right" type="button" aria-label="右">▶</button>
+
+    <!-- 左パネル: ジョイスティック（幅固定） -->
+    <div id="left-panel" class="side-panel">
+        <div id="joystick-zone">
+            <div id="joystick-base">
+                <div id="joystick-stick"></div>
+            </div>
         </div>
+    </div>
+
+    <!-- 中央パネル: プレイ画面 -->
+    <div id="center-panel">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- 右パネル: アクションボタン（幅固定） -->
+    <div id="right-panel" class="side-panel">
         <div id="action-buttons">
             <button id="btn-pause" type="button" aria-label="一時停止" title="一時停止">Ⅱ</button>
             <button id="btn-settings" type="button" aria-label="操作設定">設定</button>
@@ -54,6 +67,8 @@
         <button type="button" id="btn-settings-back" class="settings-back">戻る</button>
     </div>
 </div>
+<!-- 左パネル用ジョイスティックの入力をゲームに渡すためのグローバル（ゲームループで参照） -->
+<script>window.crowDestinyJoystick = { x: 0, y: 0 };</script>
 <!-- 役割ごとの読み込み順（依存関係を満たす） -->
 <script src="js/core/config.js"></script>
 <script src="js/core/utils.js"></script>
@@ -72,5 +87,64 @@
 <script src="js/input/joystick.js"></script>
 <script src="js/game.js"></script>
 <script src="js/main.js"></script>
+<script>
+/* 左パネル DOM ジョイスティック + 縦向き時アナウンス */
+(function () {
+    var stick = document.getElementById('joystick-stick');
+    var base = document.getElementById('joystick-base');
+    var zone = document.getElementById('joystick-zone');
+    var joy = window.crowDestinyJoystick;
+    if (!joy) return;
+
+    var joyActive = false;
+    function updateStick(e) {
+        e.preventDefault();
+        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        var rect = base.getBoundingClientRect();
+        var centerX = rect.left + rect.width / 2;
+        var centerY = rect.top + rect.height / 2;
+        var maxR = rect.width / 2;
+        var dx = clientX - centerX;
+        var dy = clientY - centerY;
+        var dist = Math.hypot(dx, dy);
+        if (dist > maxR) {
+            var r = maxR / dist;
+            dx *= r;
+            dy *= r;
+        }
+        joy.x = dx / maxR;
+        joy.y = dy / maxR;
+        stick.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
+    }
+    function joyEnd() {
+        joyActive = false;
+        joy.x = 0;
+        joy.y = 0;
+        stick.style.transform = 'translate(-50%, -50%)';
+    }
+    if (zone) {
+        zone.addEventListener('touchstart', function (e) { joyActive = true; updateStick(e); }, { passive: false });
+        zone.addEventListener('touchmove', function (e) { if (joyActive) updateStick(e); }, { passive: false });
+        zone.addEventListener('touchend', joyEnd);
+        zone.addEventListener('touchcancel', joyEnd);
+        zone.addEventListener('mousedown', function (e) { joyActive = true; updateStick(e); });
+    }
+    window.addEventListener('mousemove', function (e) { if (joyActive) updateStick(e); });
+    window.addEventListener('mouseup', joyEnd);
+
+    /* 縦向きで「横にしてください」表示 */
+    var portraitEl = document.getElementById('portrait-message');
+    function checkOrientation() {
+        if (!portraitEl) return;
+        var isPortrait = window.matchMedia('(orientation: portrait)').matches;
+        portraitEl.classList.toggle('is-visible', isPortrait);
+        portraitEl.setAttribute('aria-hidden', isPortrait ? 'false' : 'true');
+    }
+    window.addEventListener('orientationchange', checkOrientation);
+    window.addEventListener('resize', checkOrientation);
+    checkOrientation();
+})();
+</script>
 </body>
 </html>
