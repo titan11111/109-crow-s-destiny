@@ -264,32 +264,44 @@ class SoundManager {
         } catch (_) {}
     }
 
+    /**
+     * BGM を停止する。iOS 対策のため Audio 要素は破棄せず再利用する。
+     */
     stopBGM() {
         if (this._bgmEl) {
             try { this._bgmEl.pause(); this._bgmEl.currentTime = 0; } catch (_) {}
-            this._bgmEl = null;
         }
         this._currentBGM = null;
     }
 
+    /**
+     * BGM を再生する。
+     * iOS: 毎回 new Audio() するとユーザージェスチャー外で再生がブロックされるため、
+     * 1本の Audio 要素を再利用し src のみ差し替えて再生する。
+     */
     playBGM(key) {
         if (!this.bgmEnabled || !BGM_ASSETS) return;
-        /* iOS: ユーザージェスチャー内で AudioContext を resume しておく（SE 再生に必要） */
         if (this.ctx) this.ensureResumed();
         const src = BGM_ASSETS[key];
         if (!src) return;
         if (this._currentBGM === key && this._bgmEl && !this._bgmEl.paused) return;
         this.stopBGM();
         try {
-            const el = new Audio(src);
+            let el = this._bgmEl;
+            if (!el) {
+                el = new Audio();
+                el.loop = true;
+                el.playsInline = true;
+                if (el.setAttribute) {
+                    el.setAttribute('playsinline', '');
+                    el.setAttribute('webkit-playsinline', '');
+                }
+                this._bgmEl = el;
+            }
             el.volume = this.bgmVolume;
-            el.loop = true;
-            /* iOS Safari: インライン再生（全画面に遷移しない） */
-            el.playsInline = true;
-            if (el.setAttribute) { el.setAttribute('playsinline', ''); el.setAttribute('webkit-playsinline', ''); }
-            el.play().catch(e => console.warn('BGM play failed:', key, e));
-            this._bgmEl = el;
+            el.src = src;
             this._currentBGM = key;
+            el.play().catch(e => console.warn('BGM play failed:', key, e));
         } catch (e) {
             console.warn('BGM init failed:', key, e);
         }
