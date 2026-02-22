@@ -241,10 +241,16 @@ class Game {
     update() {
         if (this.paused) return;
         this.frame++; this.stateT++;
-        /* ジョイスティック未使用時はキーを消し、Crow がキーボード・D-pad を参照するようにする */
+        /* ジョイスティック: 左パネルDOMジョイスティックがあれば優先、なければキャンバス左半分の仮想ジョイスティック */
         delete this.keys['JoystickX'];
         delete this.keys['JoystickY'];
-        this.joystick.update();
+        const domJoy = typeof window !== 'undefined' && window.crowDestinyJoystick;
+        if (domJoy && (domJoy.x !== 0 || domJoy.y !== 0)) {
+            this.keys['JoystickX'] = domJoy.x;
+            this.keys['JoystickY'] = domJoy.y;
+        } else {
+            this.joystick.update();
+        }
         this.fx.update(); this.txt.update(); this.efx.update(); this.bg.update();
         /** 覚醒レベル: Lv.2=10000, Lv.3=25000, Lv.4=55000, Lv.5=80000, Lv.6=100000。レベルアップ時は「LEVEL UP!」表示＋SE */
         if (this.crow) {
@@ -252,7 +258,7 @@ class Game {
             const LEVEL_THRESHOLDS = [0, 10000, 25000, 55000, 80000, 100000];
             let newLv = 1;
             for (let i = LEVEL_THRESHOLDS.length - 1; i >= 1; i--) {
-                if (this.score >= LEVEL_THRESHOLDS[i]) { newLv = i; break; }
+                if (this.score >= LEVEL_THRESHOLDS[i]) { newLv = i + 1; break; }
             }
             this.crow.weaponLevel = newLv;
             if (newLv > oldLv) {
