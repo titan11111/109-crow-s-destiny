@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CROW'S DESTINY (standalone)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game-container">
+    <div id="loading-screen">
+        <h1>RITUAL INITIALIZING...</h1>
+        <div class="altar-light"></div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="controls">
+        <div id="dpad">
+            <button id="btn-up" type="button" aria-label="上">▲</button>
+            <button id="btn-left" type="button" aria-label="左">◀</button>
+            <button id="btn-down" type="button" aria-label="下">▼</button>
+            <button id="btn-right" type="button" aria-label="右">▶</button>
+        </div>
+        <div id="action-buttons">
+            <button id="btn-pause" type="button" aria-label="一時停止">Ⅱ</button>
+            <button id="btn-dash" type="button" aria-label="ダッシュ">DASH</button>
+            <button id="btn-start" type="button" aria-label="開始">START</button>
+        </div>
+    </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

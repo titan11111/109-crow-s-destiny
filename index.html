@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CROW'S DESTINY: THE RITUAL OF TWILIGHT</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game-container">
+    <div id="loading-screen">
+        <h1>RITUAL INITIALIZING...</h1>
+        <div class="altar-light"></div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="controls">
+        <!-- 十字キー廃止：フローティングジョイスティック（画面左半分タッチ）に置き換え -->
+        <div id="action-buttons">
+            <button id="btn-pause" type="button" aria-label="一時停止" title="一時停止">Ⅱ</button>
+            <button id="btn-dash" type="button" aria-label="ダッシュ">DASH</button>
+            <button id="btn-start" type="button" aria-label="開始">START</button>
+        </div>
+    </div>
+</div>
+<!-- 役割ごとの読み込み順（依存関係を満たす） -->
+<script src="js/core/config.js"></script>
+<script src="js/core/utils.js"></script>
+<script src="js/data/stages.js"></script>
+<script src="js/load/assets.js"></script>
+<script src="js/audio/sound.js"></script>
+<script src="js/render/anim.js"></script>
+<script src="js/render/fx.js"></script>
+<script src="js/render/background.js"></script>
+<script src="js/render/hud.js"></script>
+<script src="js/entities/crow.js"></script>
+<script src="js/entities/enemy.js"></script>
+<script src="js/entities/obstacle.js"></script>
+<script src="js/entities/boss.js"></script>
+<script src="js/entities/relic.js"></script>
+<script src="js/input/joystick.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
