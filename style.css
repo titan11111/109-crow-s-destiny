@@ -72,7 +72,8 @@ canvas{
 }
 #controls>*{pointer-events:auto}
 
-#dpad{
+/* WEB用 D-pad（タッチデバイスでは非表示 → iOS はフローティングジョイスティック） */
+#dpad.dpad-web{
     display:grid;
     grid-template-areas:
         ".  up  ."
@@ -85,6 +86,11 @@ canvas{
 #btn-left{grid-area:lt}
 #btn-down{grid-area:dn}
 #btn-right{grid-area:rt}
+
+/* タッチデバイス（iOS等）では D-pad を非表示 */
+@media (hover: none) and (pointer: coarse){
+    #dpad.dpad-web{display:none !important;}
+}
 
 #dpad button,#action-buttons button{
     -webkit-tap-highlight-color:transparent;
@@ -118,7 +124,7 @@ canvas{
         grid-template-columns:48px 48px 48px;
         grid-template-rows:48px 48px;
     }
-    #dpad button,#action-buttons button{
+    #action-buttons button{
         min-width:46px;min-height:46px;font-size:14px;padding:6px;
     }
     #action-buttons button{min-width:64px;min-height:46px}
@@ -133,7 +139,7 @@ canvas{
         grid-template-columns:64px 64px 64px;
         grid-template-rows:64px 64px;
     }
-    #dpad button,#action-buttons button{
+    #action-buttons button{
         min-width:62px;min-height:62px;font-size:18px;
     }
     #action-buttons button{min-width:84px}
@@ -146,10 +152,60 @@ canvas{
         grid-template-rows:50px 50px;
         gap:2px;
     }
-    #dpad button,#action-buttons button{
+    #action-buttons button{
         min-width:48px;min-height:48px;font-size:13px;padding:4px;
         border-radius:8px;
     }
     #action-buttons{gap:6px}
     #action-buttons button{min-width:60px;min-height:48px}
 }
+
+/* ======= ジョイスティック設定オーバーレイ ======= */
+.settings-overlay{
+    display:none;
+    position:fixed;inset:0;z-index:2000;
+    background:rgba(0,0,0,0.85);
+    align-items:center;justify-content:center;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.settings-overlay.is-open{display:flex}
+.settings-panel{
+    background:rgba(30,22,18,0.98);
+    border:2px solid #4a3528;
+    border-radius:16px;
+    padding:24px;
+    max-width:90vw;width:360px;
+    -webkit-tap-highlight-color:transparent;
+}
+.settings-title{
+    font-size:16px;color:#e0cda7;margin:16px 0 8px;
+    font-family:Georgia,serif;
+}
+.settings-title:first-child{margin-top:0}
+.settings-row{
+    display:flex;align-items:center;gap:12px;
+}
+.settings-row input[type=range]{flex:1;min-width:0;accent-color:#ff4d00}
+.settings-label{font-size:12px;color:#aa8866;min-width:2.2em}
+.settings-value{font-size:14px;color:#c9b896;margin:4px 0}
+.settings-test-area{
+    margin:20px 0;
+    min-height:100px;
+    background:rgba(0,0,0,0.4);
+    border:2px dashed #4a3528;
+    border-radius:12px;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    touch-action:none;
+}
+.settings-test-label{font-size:13px;color:#8a7a5c;margin-bottom:8px}
+.settings-test-out{font-size:18px;color:#e0cda7;font-family:monospace}
+.settings-back{
+    display:block;
+    width:100%;margin-top:16px;padding:14px;
+    font-size:18px;font-family:Georgia,serif;color:#e0cda7;
+    background:rgba(61,43,31,0.9);border:2px solid #4a3528;
+    border-radius:12px;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+}
+.settings-back:active{transform:scale(0.98);opacity:0.9}

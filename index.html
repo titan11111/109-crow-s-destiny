@@ -16,12 +16,42 @@
     </div>
     <canvas id="gameCanvas"></canvas>
     <div id="controls">
-        <!-- 十字キー廃止：フローティングジョイスティック（画面左半分タッチ）に置き換え -->
+        <!-- WEB（マウス・キーボード）用 D-pad。iOS では CSS で非表示にしてフローティングジョイスティックを使用 -->
+        <div id="dpad" class="dpad-web">
+            <button id="btn-up" type="button" aria-label="上">▲</button>
+            <button id="btn-left" type="button" aria-label="左">◀</button>
+            <button id="btn-down" type="button" aria-label="下">▼</button>
+            <button id="btn-right" type="button" aria-label="右">▶</button>
+        </div>
         <div id="action-buttons">
             <button id="btn-pause" type="button" aria-label="一時停止" title="一時停止">Ⅱ</button>
+            <button id="btn-settings" type="button" aria-label="操作設定">設定</button>
             <button id="btn-dash" type="button" aria-label="ダッシュ">DASH</button>
             <button id="btn-start" type="button" aria-label="開始">START</button>
         </div>
+    </div>
+</div>
+<div id="joystick-settings-overlay" class="settings-overlay" aria-hidden="true">
+    <div class="settings-panel">
+        <h2 class="settings-title">操作感度</h2>
+        <div class="settings-row">
+            <span class="settings-label">鈍感</span>
+            <input type="range" id="joystick-sensitivity" min="0.5" max="2" step="0.1" value="1.0" aria-label="感度">
+            <span class="settings-label">敏感</span>
+        </div>
+        <p class="settings-value">感度: <output id="out-sensitivity">1.0</output></p>
+        <h2 class="settings-title">デッドゾーン</h2>
+        <div class="settings-row">
+            <span class="settings-label">小</span>
+            <input type="range" id="joystick-deadzone" min="0" max="0.4" step="0.05" value="0.15" aria-label="デッドゾーン">
+            <span class="settings-label">大</span>
+        </div>
+        <p class="settings-value">デッドゾーン: <output id="out-deadzone">0.15</output></p>
+        <div class="settings-test-area" id="joystick-test-area">
+            <span class="settings-test-label">テストエリア（ここでドラッグ）</span>
+            <output id="out-test-xy" class="settings-test-out">X: 0.00  Y: 0.00</output>
+        </div>
+        <button type="button" id="btn-settings-back" class="settings-back">戻る</button>
     </div>
 </div>
 <!-- 役割ごとの読み込み順（依存関係を満たす） -->
