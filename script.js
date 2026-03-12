@@ -837,6 +837,10 @@ class Crow {
         this.weaponLevel=1;
         this.barrier=0;
         this.dashCD=0; this.dashing=false; this.dashT=0;
+        this.dashOriginX=0; this.dashOriginY=0;
+        this.dashReturning=false;
+        this.dashPath=[]; this.dashPathIdx=0;
+        this.afterimages=[];
         this.anim=new Anim({
             'FLY':{frames:4,loop:true,speed:1},
             'DASH':{frames:4,loop:false,speed:2},
@@ -856,22 +860,52 @@ class Crow {
         if(keys['ArrowUp']||keys['KeyW']||keys['TouchUp']) my=-1;
         if(keys['ArrowDown']||keys['KeyS']||keys['TouchDown']) my=1;
 
-        if((keys['ShiftLeft']||keys['ShiftRight']||keys['TouchDash'])&&this.dashCD<=0&&!this.dashing){
-            this.dashing=true; this.dashT=12; this.dashCD=45;
+        const dashKey=keys['ShiftLeft']||keys['ShiftRight']||keys['TouchDash'];
+
+        // ダッシュ開始
+        if(dashKey&&this.dashCD<=0&&!this.dashing&&!this.dashReturning){
+            this.dashing=true; this.dashT=16; this.dashCD=45;
+            this.dashOriginX=this.x; this.dashOriginY=this.y;
+            this.dashPath=[]; this.afterimages=[];
             this.anim.set('DASH'); this.inv=Math.max(this.inv,30);
             if(this.soundManager&&this.soundManager.playDash) this.soundManager.playDash();
         }
+
         if(this.dashing){
+            // 軌跡を記録しながら前進
+            this.dashPath.push({x:this.x,y:this.y});
+            this.afterimages.push({x:this.x,y:this.y,facing:this.facing});
+            if(this.afterimages.length>9) this.afterimages.shift();
             this.dashT--;
             this.vx=this.facing*CFG.DASH_SPD;
             this.vy=my*CFG.DASH_SPD*0.5;
-            if(this.dashT<=0) this.dashing=false;
+            // ボタンを離す or 時間切れ → 同じ軌道を逆走
+            if(!dashKey||this.dashT<=0){
+                this.dashing=false;
+                this.dashReturning=true;
+                this.dashPathIdx=this.dashPath.length-1;
+            }
+        } else if(this.dashReturning){
+            // 往路を逆再生して発射地点へ戻る（同距離・同軌道を保証）
+            this.afterimages.push({x:this.x,y:this.y,facing:this.facing});
+            if(this.afterimages.length>9) this.afterimages.shift();
+            if(this.dashPathIdx>=0){
+                const pt=this.dashPath[this.dashPathIdx];
+                this.vx=pt.x-this.x;
+                this.vy=pt.y-this.y;
+                this.dashPathIdx--;
+            } else {
+                this.dashReturning=false;
+                this.x=this.dashOriginX; this.y=this.dashOriginY;
+                this.vx=0; this.vy=0;
+                this.dashPath=[]; this.afterimages=[];
+            }
         } else {
             this.vx=mx*CFG.PLAYER_SPD;
             this.vy=my*CFG.PLAYER_SPD;
         }
         if(this.dashCD>0) this.dashCD--;
-        if(mx!==0) this.facing=mx>0?1:-1;
+        if(mx!==0&&!this.dashing&&!this.dashReturning) this.facing=mx>0?1:-1;
 
         this.x+=this.vx; this.y+=this.vy;
         this.x=clamp(this.x,CFG.MARGIN,CFG.W-this.w-CFG.MARGIN);
@@ -879,7 +913,7 @@ class Crow {
 
         if(this.inv>0) this.inv--;
         if(this.barrier>0) this.barrier--;
-        if(!this.dashing) this.anim.set('FLY');
+        if(!this.dashing&&!this.dashReturning) this.anim.set('FLY');
         this.anim.update();
 
         this.shootT++;
@@ -915,6 +949,33 @@ class Crow {
         return false;
     }
     draw(c){
+        // 蒼炎残像（本体より先に描く）
+        this.afterimages.forEach((img,i)=>{
+            const t=(i+1)/this.afterimages.length;
+            c.save();
+            c.translate(img.x+this.w/2, img.y+this.h/2);
+            // 外炎（青・広め）
+            c.globalAlpha=t*0.3;
+            c.fillStyle=this.dashReturning?'#0033cc':'#0066ff';
+            c.beginPath(); c.ellipse(0,0,24,17,0,0,Math.PI*2); c.fill();
+            // 中炎（シアン）
+            c.globalAlpha=t*0.55;
+            c.fillStyle=this.dashReturning?'#4488ff':'#00ccff';
+            c.beginPath(); c.ellipse(0,0,15,11,0,0,Math.PI*2); c.fill();
+            // 芯（白）
+            c.globalAlpha=t*0.8;
+            c.fillStyle='#ddeeff';
+            c.beginPath(); c.ellipse(0,0,7,5,0,0,Math.PI*2); c.fill();
+            // スプライトがある場合は薄く重ねる
+            if(IMG.crowSheet){
+                c.globalAlpha=t*0.25;
+                c.scale(img.facing/3,1/3);
+                const sh=IMG.crowSheet,sw=sh.naturalWidth||128,shh=sh.naturalHeight||96;
+                const cw=sw/4,ch=shh/4;
+                c.drawImage(sh,3*cw,3*ch,cw,ch,-cw/2,-ch/2,cw,ch);
+            }
+            c.restore();
+        });
         c.save();
         const cx=this.x+this.w/2, cy=this.y+this.h/2;
         c.translate(cx,cy);
@@ -923,7 +984,7 @@ class Crow {
             const auraAlpha = 0.4 + Math.sin(this.inv*0.3)*0.2;
             c.save();
             c.globalAlpha = auraAlpha;
-            c.strokeStyle = this.dashing ? "#00ffff" : "#ffff00";
+            c.strokeStyle = (this.dashing||this.dashReturning) ? "#00ffff" : "#ffff00";
             c.lineWidth = 3;
             c.beginPath();
             c.arc(0,0, 18+Math.sin(this.inv*0.4)*4, 0, Math.PI*2);
@@ -996,7 +1057,17 @@ class Crow {
 /* ==========================================================
    [11] ENEMY — 穢れし者（描画2倍）
    ========================================================== */
-const STAGE_SPRITE_KEYS = { 1: 'enemy2', 2: 'enemy3', 4: 'enemy5', 6: 'enemy7' };
+// 面とスプライト番号を一致させる:
+// 1面・2面=enemy2, 3面=enemy3, 4面=steam_wolf, 5面=mechanical_bat, 6面=enemy6, 7面=enemy7
+const STAGE_SPRITE_KEYS = {
+    1: 'enemy2', // 1面
+    2: 'enemy2', // 2面（エネミー2）
+    3: 'enemy3', // 3面（エネミー3）
+    4: 'steam_wolf', // 4面（スチームウルフ）
+    5: 'mechanical_bat', // 5面（メカニカルバット）
+    6: 'enemy6', // 6面（エネミー6）
+    7: 'enemy7'  // 7面（エネミー7）
+};
 class Enemy {
     constructor(x,y,sd,isBlue=false,stageIdx=undefined){
         this.x=x; this.y=y;
@@ -1684,6 +1755,21 @@ class Game {
         }
         if(this.state==="PLAYING"){
             this.crow.update(this.keys);
+            // 蒼炎パーティクル（ダッシュ中・戻り中）
+            if(this.crow.dashing||this.crow.dashReturning){
+                const fc=this.crow.dashReturning
+                    ?['#0044ff','#0033cc','#4466ff','#88aaff','#ffffff']
+                    :['#00aaff','#00ccff','#0066ff','#88ddff','#ffffff'];
+                for(let i=0;i<5;i++){
+                    const px=this.crow.x+this.crow.w/2+(Math.random()-.5)*12;
+                    const py=this.crow.y+this.crow.h/2+(Math.random()-.5)*10;
+                    const col=fc[Math.floor(Math.random()*fc.length)];
+                    this.fx.p.push(new Particle(px,py,
+                        (Math.random()-.5)*2.5,
+                        -Math.random()*4.5-0.5,
+                        col, 18+Math.random()*18, 4+Math.random()*6));
+                }
+            }
             this.spawnEnemies();
             this.spawnObstacles();
             const ss=this.scrollSpd;
